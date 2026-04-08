@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>teamDNA v2 | Founder Operating System</title>
+  <style>
+    :root {
+      --bg-base: #050711;
+      --bg-elevated: #080b16;
+      --bg-card: #121629;
+      --accent-primary: #5a7bff;
+      --accent-success: #4fd1a5;
+      --accent-warning: #ffc857;
+      --accent-danger: #ff5a7b;
+      --text-main: #ffffff;
+      --text-muted: #8b949e;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --font-stack: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 100px;
+    }
+
+    /* WOW LAYER */
+    .wow-highlight {
+      position: relative;
+    }
+    .wow-highlight::after {
+      content: "";
+      position: absolute;
+      top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle at center, rgba(90, 123, 255, 0.15) 0%, transparent 50%);
+      mix-blend-mode: screen;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .wow-badge {
+      position: absolute;
+      top: 20px; right: 20px;
+      background: linear-gradient(135deg, var(--accent-primary), #8a2be2);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      z-index: 10;
+      box-shadow: 0 4px 15px rgba(90, 123, 255, 0.4);
+    }
+    .wow-glow {
+      border: 1px solid var(--accent-warning);
+      box-shadow: 0 0 40px rgba(255, 200, 87, 0.2);
+    }
+
+    /* LAYOUT */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    section {
+      margin-top: 64px;
+      padding: 32px;
+      background-color: var(--bg-elevated);
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      position: relative;
+    }
+
+    h1, h2, h3 { font-weight: 600; margin-bottom: 16px; }
+    h1 { font-size: 2.5rem; letter-spacing: -0.02em; }
+    h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+    
+    /* UTILITIES */
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .gap-4 { gap: 16px; }
+    .gap-8 { gap: 32px; }
+    .grid { display: grid; }
+    .grid-cols-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .grid-cols-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    
+    /* CHIPS & BADGES */
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border-color);
+    }
+    .chip.now { background: rgba(79, 209, 165, 0.1); color: var(--accent-success); border-color: var(--accent-success); }
+    .chip.next { background: rgba(255, 200, 87, 0.1); color: var(--accent-warning); border-color: var(--accent-warning); }
+    .chip.archive { background: rgba(255, 90, 123, 0.1); color: var(--accent-danger); border-color: var(--accent-danger); }
+    
+    .uncertainty-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 999px; font-size: 0.7rem;
+      background: rgba(255, 200, 87, 0.1); color: var(--accent-warning);
+      border: 1px dashed var(--accent-warning);
+    }
+
+    /* CARDS */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      border-color: var(--accent-primary);
+    }
+
+    /* BULLETS */
+    .bullet-list { list-style: none; margin-top: 12px; }
+    .bullet-list li { position: relative; padding-left: 16px; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-muted); }
+    .bullet-list li::before { content: "•"; position: absolute; left: 0; }
+    .bullet-confirmed::before { color: var(--accent-success); }
+    .bullet-uncertain::before { color: var(--accent-warning); }
+
+    /* FORMS */
+    input, button, textarea {
+      font-family: inherit;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-color);
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      outline: none;
+    }
+    input:focus, textarea:focus { border-color: var(--accent-primary); }
+    button {
+      background: var(--accent-primary);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #4a6bee; }
+
+    /* PANELS */
+    .panel {
+      background: var(--bg-card);
+      border-left: 4px solid var(--accent-primary);
+      padding: 24px;
+      border-radius: 0 14px 14px 0;
+      margin-top: 16px;
+      display: none;
+      position: relative;
+    }
+    .panel.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Hero / Identity Command Header -->
+  <header class="container wow-highlight" style="padding-top: 64px; padding-bottom: 32px;">
+    <div class="wow-badge">✦ Founder Command Center</div>
+    <div style="max-width: 800px;">
+      <h1 style="font-size: 3rem; margin-bottom: 8px;">teamDNA v2</h1>
+      <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 24px;">
+        Operator: Vinny Gilberti | The Autonomous Agent Lab, Miami Beach, FL
+      </p>
+      <div class="flex gap-4">
+        <div class="chip now wow-glow">Focus: Fastest path to cash</div>
+        <div class="chip next">Focus: Infra that compounds</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    
+    <!-- 2. Session Signals -->
+    <section id="session-signals">
+      <h2>Session Signals</h2>
+      <div class="grid grid-cols-3 gap-4" id="signals-container"></div>
+    </section>
+
+    <!-- 3. Gap Analysis -->
+    <section id="gap-analysis">
+      <h2>Gap Analysis</h2>
+      <div class="grid grid-cols-2 gap-8" id="gap-container"></div>
+    </section>
+
+    <!-- 4. Priority War Room -->
+    <section id="priority-war-room">
+      <h2>Priority War Room</h2>
+      <div class="flex gap-4" style="margin-bottom: 24px;">
+        <button class="filter-btn" data-lane="NOW" aria-pressed="true">NOW Lane</button>
+        <button class="filter-btn" data-lane="NEXT" aria-pressed="false" style="background: transparent; border: 1px solid var(--border-color);">NEXT Lane</button>
+      </div>
+      <div class="grid grid-cols-3 gap-4" id="war-room-container"></div>
+    </section>
+
+    <!-- 5. Full Project Encyclopedia -->
+    <section id="project-encyclopedia">
+      <h2>Full Project Encyclopedia</h2>
+      <div class="grid grid-cols-2 gap-4" id="encyclopedia-container"></div>
+    </section>
+
+    <!-- 6. Revenue Architecture Map -->
+    <section id="revenue-architecture">
+      <h2>Revenue Architecture Map</h2>
+      <div class="grid grid-cols-2 gap-8" id="revenue-container"></div>
+    </section>
+
+    <!-- 7. Project Atlas -->
+    <section id="project-atlas">
+      <h2>Project Atlas</h2>
+      <div class="grid grid-cols-3 gap-4" id="atlas-container"></div>
+    </section>
+
+    <!-- 8. Execution Timeline -->
+    <section id="execution-timeline">
+      <h2>Execution Timeline</h2>
+      <div class="flex flex-col gap-4" id="timeline-container"></div>
+    </section>
+
+    <!-- 9. BBOY Spawn Queue -->
+    <section id="bboy-spawn-queue">
+      <h2>BBOY Spawn Queue</h2>
+      <form id="bboy-form" class="flex gap-4" style="margin-bottom: 24px;">
+        <input type="text" id="bboy-task" placeholder="Enter new task..." style="flex: 1;" required>
+        <select id="bboy-project" style="background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 0 14px;">
+          <option value="RevenueOS v1.0">RevenueOS v1.0</option>
+          <option value="Lead Rescue">Lead Rescue</option>
+          <option value="Digital Assistants Service Layer">Digital Assistants Service Layer</option>
+        </select>
+        <button type="submit">Spawn Task</button>
+      </form>
+      <div class="flex flex-col gap-4" id="bboy-queue-container"></div>
+    </section>
+
+    <!-- 10. Operator Briefing Panel -->
+    <section id="operator-briefing">
+      <h2>Operator Briefing Panel</h2>
+      <div id="briefing-content" class="panel active">
+        Select a project from the War Room or Atlas to view detailed briefing.
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // DATA ARCHITECTURE (MANDATORY)
+    const projects = [
+      {
+        name: "The Autonomous Agent Lab",
+        category: "brand",
+        status: "Active",
+        revenue_score: 3,
+        completion_score: 3,
+        priority_lane: "NEXT",
+        why_it_matters: "Brand container for all future operations.",
+        current_blocker: "Needs unified messaging.",
+        next_action: "Finalize brand copy.",
+        dependencies: [],
+        proof_artifacts: [],
+        uncertainty_flags: ["Exact launch date"]
+      },
+      {
+        name: "RevenueOS v1.0",
+        category: "dashboard",
+        status: "In Progress",
+        revenue_score: 5,
+        completion_score: 2,
+        priority_lane: "NOW",
+        why_it_matters: "Primary cash wedge.",
+        current_blocker: "Data integration pipeline.",
+        next_action: "Complete API connections.",
+        dependencies: [],
+        proof_artifacts: [],
+        uncertainty_flags: ["Client data readiness"]
+      },
+      {
+        name: "Lead Rescue",
+        category: "offer",
+        status: "Active",
+        revenue_score: 5,
+        completion_score: 2,
+        priority_lane: "NOW",
+        why_it_matters: "Immediate cash conversion.",
+        current_blocker: "Outreach automation.",
+        next_action: "Deploy first campaign.",
+        dependencies: [],
+        proof_artifacts: [],
+        uncertainty_flags: ["Conversion rate"]
+      },
+      {
+        name: "Digital Assistants Service Layer",
+        category: "service",
+        status: "Active",
+        revenue_score: 5,
+        completion_score: 3,
+        priority_lane: "NOW",
+        why_it_matters: "High-ticket service offering.",
+        current_blocker: "Standardizing delivery.",
+        next_action: "Document SOPs.",
+        dependencies: [],
+        proof_artifacts: [],
+        uncertainty_flags: ["Pricing tiers"]
+      },
+      {
+        name: "Unified Free-Tier Ops Dashboard",
+        category: "dashboard",
+        status: "Planned",
+        revenue_score: 3,
+        completion_score: 2,
+        priority_lane: "NEXT",
+        why_it_matters: "Lead magnet and infra.",
+        current_blocker: "UI/UX design.",
+        next_action: "Wireframe core views.",
+        dependencies: ["The Autonomous Agent Lab"],
+        proof_artifacts: [],
+        uncertainty_flags: ["Feature scope"]
+      },
+      {
+        name: "LangGraph Agent Framework",
+        category: "framework",
+        status: "Planned",
+        revenue_score: 3,
+        completion_score: 2,
+        priority_lane: "NEXT",
+        why_it_matters: "Compounds delivery speed.",
+        current_blocker: "Technical research.",
+        next_action: "Build proof of concept.",
+        dependencies: [],
+        proof_artifacts: [],
+        uncertainty_flags: ["Integration complexity"]
+      },
+      {
+        name: "Agent Observability Stack",
+        category: "observability",
+        status: "Planned",
+        revenue_score: 3,
+        completion_score: 1,
+        priority_lane: "NEXT",
+        why_it_matters: "Ensures agent reliability.",
+        current_blocker: "Tool selection.",
+        next_action: "Evaluate Datadog vs custom.",
+        dependencies: ["LangGraph Agent Framework"],
+        proof_artifacts: [],
+        uncertainty_flags: ["Cost of scale"]
+      },
+      {
+        name: "teamDNA Dashboard",
+        category: "dashboard",
+        status: "Active",
+        revenue_score: 4,
+        completion_score: 4,
+        priority_lane: "NEXT",
+        why_it_matters: "Founder operating system.",
+        current_blocker: "Finalizing layout.",
+        next_action: "Deploy v2.",
+        dependencies: [],
+        proof_artifacts: ["teamDNA-v2.html"],
+        uncertainty_flags: []
+      }
+    ];
+
+    const revenueMeta = {
+      "The Autonomous Agent Lab": { core: false, monetizationPath: "Brand Equity", valueBand: "N/A", clients: "All" },
+      "RevenueOS v1.0": { core: true, monetizationPath: "SaaS / Retainer", valueBand: "$2k-$5k/mo", clients: "B2B Sales" },
+      "Lead Rescue": { core: true, monetizationPath: "Performance / Setup Fee", valueBand: "$1k-$3k", clients: "Agencies" },
+      "Digital Assistants Service Layer": { core: true, monetizationPath: "Custom Build", valueBand: "$5k-$15k", clients: "Enterprise" },
+      "Unified Free-Tier Ops Dashboard": { core: false, monetizationPath: "Lead Gen", valueBand: "Free", clients: "SMBs" },
+      "LangGraph Agent Framework": { core: false, monetizationPath: "Internal Efficiency", valueBand: "N/A", clients: "Internal" },
+      "Agent Observability Stack": { core: false, monetizationPath: "Internal Reliability", valueBand: "N/A", clients: "Internal" },
+      "teamDNA Dashboard": { core: false, monetizationPath: "Founder Focus", valueBand: "Priceless", clients: "Internal" }
+    };
+
+    // RENDER FUNCTIONS
+    function renderCard(project) {
+      const laneClass = project.priority_lane.toLowerCase();
+      const uncertaintyHtml = project.uncertainty_flags.length > 0 
+        ? `<div class="uncertainty-chip" style="margin-top: 8px;">⚠ Estimated · not confirmed</div>` 
+        : '';
+      
+      return `
+        <div class="card" tabindex="0" onclick="updateBriefing('${project.name}')" onkeypress="if(event.key==='Enter') updateBriefing('${project.name}')">
+          <div class="flex" style="justify-content: space-between; margin-bottom: 12px;">
+            <h3 style="margin:0; font-size: 1.1rem;">${project.name}</h3>
+            <span class="chip ${laneClass}">${project.priority_lane}</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">${project.why_it_matters}</p>
+          <div class="flex gap-4" style="font-size: 0.8rem;">
+            <div><strong>Rev:</strong> ${project.revenue_score}/5</div>
+            <div><strong>Done:</strong> ${project.completion_score}/5</div>
+          </div>
+          ${uncertaintyHtml}
+        </div>
+      `;
+    }
+
+    function updateBriefing(projectName) {
+      const project = projects.find(p => p.name === projectName);
+      const meta = revenueMeta[projectName];
+      if (!project) return;
+
+      const panel = document.getElementById('briefing-content');
+      
+      let bulletsHtml = '';
+      project.uncertainty_flags.forEach(flag => {
+        bulletsHtml += `<li class="bullet-uncertain">${flag} (Unsurfaced)</li>`;
+      });
+      if (project.uncertainty_flags.length === 0) {
+        bulletsHtml += `<li class="bullet-confirmed">All specs confirmed</li>`;
+      }
+
+      panel.innerHTML = `
+        <h3 style="color: var(--accent-primary);">${project.name}</h3>
+        <div class="grid grid-cols-2 gap-4" style="margin-top: 16px;">
+          <div>
+            <p><strong>Status:</strong> ${project.status}</p>
+            <p><strong>Category:</strong> ${project.category}</p>
+            <p><strong>Blocker:</strong> ${project.current_blocker}</p>
+            <p><strong>Next Action:</strong> ${project.next_action}</p>
+          </div>
+          <div>
+            <p><strong>Monetization:</strong> ${meta.monetizationPath}</p>
+            <p><strong>Value Band:</strong> ${meta.valueBand}</p>
+            <p><strong>Target Clients:</strong> ${meta.clients}</p>
+          </div>
+        </div>
+        <ul class="bullet-list">
+          ${bulletsHtml}
+        </ul>
+      `;
+    }
+
+    function initDashboard() {
+      // Priority War Room
+      const warRoom = document.getElementById('war-room-container');
+      warRoom.innerHTML = projects.filter(p => p.priority_lane === 'NOW').map(renderCard).join('');
+
+      // Project Atlas
+      const atlas = document.getElementById('atlas-container');
+      atlas.innerHTML = projects.map(renderCard).join('');
+
+      // Revenue Architecture
+      const revContainer = document.getElementById('revenue-container');
+      const coreOffers = projects.filter(p => revenueMeta[p.name].core);
+      const infra = projects.filter(p => !revenueMeta[p.name].core);
+      
+      revContainer.innerHTML = `
+        <div class="card" style="border-color: var(--accent-success);">
+          <h3 style="color: var(--accent-success);">Core Offers (Cash Wedges)</h3>
+          <div class="flex flex-col gap-4">
+            ${coreOffers.map(p => `<div style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px;">${p.name} - ${revenueMeta[p.name].valueBand}</div>`).join('')}
+          </div>
+        </div>
+        <div class="card" style="border-color: var(--accent-warning);">
+          <h3 style="color: var(--accent-warning);">Supporting Infra (Multipliers)</h3>
+          <div class="flex flex-col gap-4">
+            ${infra.map(p => `<div style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px;">${p.name}</div>`).join('')}
+          </div>
+        </div>
+      `;
+
+      // BBOY Form
+      document.getElementById('bboy-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const task = document.getElementById('bboy-task').value;
+        const proj = document.getElementById('bboy-project').value;
+        const queue = document.getElementById('bboy-queue-container');
+        
+        const taskEl = document.createElement('div');
+        taskEl.className = 'card';
+        taskEl.style.padding = '12px 20px';
+        taskEl.innerHTML = `<strong>${proj}:</strong> ${task} <span class="chip now" style="float:right;">Spawned</span>`;
+        
+        queue.prepend(taskEl);
+        document.getElementById('bboy-task').value = '';
+      });
+
+      // Filter Buttons
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.filter-btn').forEach(b => {
+            b.setAttribute('aria-pressed', 'false');
+            b.style.background = 'transparent';
+            b.style.border = '1px solid var(--border-color)';
+          });
+          e.target.setAttribute('aria-pressed', 'true');
+          e.target.style.background = 'var(--accent-primary)';
+          e.target.style.border = '1px solid var(--accent-primary)';
+          
+          const lane = e.target.dataset.lane;
+          const filtered = lane === 'NOW' 
+            ? projects.filter(p => p.priority_lane === 'NOW')
+            : projects.filter(p => p.priority_lane !== 'NOW');
+            
+          warRoom.innerHTML = filtered.map(renderCard).join('');
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initDashboard);
+  </script>
+</body>
+</html>

@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { 
   Wrench, Zap, ThermometerSnowflake, Hammer, HardHat, 
-  CheckCircle, ArrowRight, ShieldCheck, Clock, Menu, X, Loader2
+  CheckCircle, ArrowRight, ShieldCheck, Clock, Menu, X, Loader2,
+  FileText, UserCheck, DollarSign
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import CommandPalette, { Command } from './components/CommandPalette';
@@ -60,10 +61,12 @@ export default function App() {
   };
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     service: '', name: '', phone: '', email: '', description: ''
   });
+  const [file, setFile] = useState<File | null>(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
 
@@ -144,21 +147,36 @@ export default function App() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
+    setIsSubmitting(true);
+    
+    // Simulate network request
     setTimeout(() => {
-      setIsSubmitted(false);
-      setFormData({ service: '', name: '', phone: '', email: '', description: '' });
-    }, 5000);
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+      
+      // Increased timeout to 10 seconds so the user can read the success message
+      setTimeout(() => {
+        setIsSubmitted(false);
+        setFormData({ service: '', name: '', phone: '', email: '', description: '' });
+        setFile(null);
+      }, 10000);
+    }, 2000);
   };
 
   const services = [
-    { icon: <Wrench className="w-6 h-6 text-cyan-400" />, title: 'Plumbing', desc: 'Leaks, clogs, water heaters, pipe repairs.' },
-    { icon: <Zap className="w-6 h-6 text-cyan-400" />, title: 'Electrical', desc: 'Outlets, wiring, panel upgrades, lighting.' },
-    { icon: <ThermometerSnowflake className="w-6 h-6 text-cyan-400" />, title: 'AC Repair', desc: 'Not cooling, strange noises, maintenance.' },
-    { icon: <Hammer className="w-6 h-6 text-cyan-400" />, title: 'Handyman', desc: 'Drywall, painting, furniture assembly.' },
-    { icon: <HardHat className="w-6 h-6 text-cyan-400" />, title: 'Contractors', desc: 'Kitchen & bath remodels, additions, roofing.' },
+    { icon: <Wrench className="w-6 h-6 text-cyan-400" />, title: 'Plumbing', desc: 'Leaks, Clogs, Water Heaters, Pipe Repairs, Bathroom & Kitchen Fixtures' },
+    { icon: <Zap className="w-6 h-6 text-cyan-400" />, title: 'Electrical', desc: 'Outlets, Wiring, Panel Upgrades, Lighting, Ceiling Fans, Smart Home Setup' },
+    { icon: <ThermometerSnowflake className="w-6 h-6 text-cyan-400" />, title: 'AC Repair', desc: 'Not Cooling, Strange Noises, Maintenance, New Installs, Duct Work, HVAC' },
+    { icon: <Hammer className="w-6 h-6 text-cyan-400" />, title: 'Handyman', desc: 'Drywall, Painting, Furniture Assembly, Pressure Washing, Odd Jobs' },
+    { icon: <HardHat className="w-6 h-6 text-cyan-400" />, title: 'Contractors', desc: 'Kitchen & Bath Remodels, Additions, Flooring, Roofing, Permits & Plans' },
   ];
 
   return (
@@ -253,18 +271,18 @@ export default function App() {
               </motion.div>
               
               <motion.h1 variants={STAGGER.item} className="text-5xl sm:text-6xl lg:text-7xl font-display font-bold text-white tracking-tight leading-[1.05] mb-6">
-                Civic Repair, <br/>
+                Fast, Trusted Repairs in <br/>
                 <motion.span 
                   animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
                   transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
                   className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 bg-[length:200%_auto]"
                 >
-                  Reimagined.
+                  Miami-Dade
                 </motion.span>
               </motion.h1>
               
               <motion.p variants={STAGGER.item} className="text-lg sm:text-xl text-slate-400 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-light">
-                Report infrastructure issues instantly. We connect you with vetted city pros to fix plumbing, electrical, and structural hazards. Zero friction.
+                Tell us what's broken and a trusted Miami pro will get back to you. 100% free estimates — no obligations, no pressure.
               </motion.p>
               
               <motion.div variants={STAGGER.item} className="flex flex-col sm:flex-row gap-6 justify-center lg:justify-start">
@@ -295,12 +313,26 @@ export default function App() {
                 ></motion.div>
                 
                 <AnimatePresence mode="wait">
-                  {isSubmitted ? (
+                  {isSubmitting ? (
+                    <motion.div 
+                      key="submitting"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                      className="text-center py-16 flex flex-col items-center justify-center"
+                    >
+                      <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mb-6" />
+                      <h3 className="text-2xl font-display font-medium text-white">Dispatching Request...</h3>
+                      <p className="text-slate-400 mt-2">Connecting with available pros in your area.</p>
+                    </motion.div>
+                  ) : isSubmitted ? (
                     <motion.div 
                       key="success"
-                      initial={{ opacity: 0, scale: 0.9 }}
+                      initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
                       className="text-center py-16"
                     >
                       <motion.div 
@@ -319,20 +351,21 @@ export default function App() {
                       key="form"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.4, ease: "easeInOut" }}
                       onSubmit={handleSubmit} 
                       className="space-y-5"
                     >
                       <div>
-                        <h2 className="text-2xl font-display font-bold text-white mb-1">Initialize Request</h2>
-                        <p className="text-slate-400 text-sm mb-6">Enter details below to dispatch a professional.</p>
+                        <h2 className="text-2xl font-display font-bold text-white mb-1">Get Your Free Quote</h2>
+                        <p className="text-slate-400 text-sm mb-6">Tell us what's broken and a trusted Miami pro will get back to you.</p>
                       </div>
                       
                       <div className="space-y-4">
                         <div className="relative">
                           <select 
                             name="service" required value={formData.service} onChange={handleInputChange}
-                            className="w-full glass-input rounded-xl px-4 py-3.5 text-sm appearance-none"
+                            className="w-full glass-input rounded-xl px-4 py-3.5 text-sm appearance-none transition-all duration-300 focus:ring-2 focus:ring-cyan-500/50"
                           >
                             <option value="" disabled className="bg-[#121216]">Select Service Category</option>
                             <option value="plumbing" className="bg-[#121216]">Plumbing & Water</option>
@@ -340,26 +373,91 @@ export default function App() {
                             <option value="ac" className="bg-[#121216]">HVAC & Cooling</option>
                             <option value="contractor" className="bg-[#121216]">Structural & Concrete</option>
                           </select>
+                          <AnimatePresence>
+                            {formData.service && (
+                              <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0 }} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <CheckCircle className="w-4 h-4 text-cyan-400" />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <input 
-                            type="text" name="name" required value={formData.name} onChange={handleInputChange}
-                            className="w-full glass-input rounded-xl px-4 py-3.5 text-sm placeholder:text-slate-500"
-                            placeholder="Full Name"
-                          />
-                          <input 
-                            type="tel" name="phone" required value={formData.phone} onChange={handleInputChange}
-                            className="w-full glass-input rounded-xl px-4 py-3.5 text-sm placeholder:text-slate-500"
-                            placeholder="Phone Number"
-                          />
+                          <div className="relative">
+                            <input 
+                              type="text" name="name" required value={formData.name} onChange={handleInputChange}
+                              className="w-full glass-input rounded-xl px-4 py-3.5 text-sm placeholder:text-slate-500 transition-all duration-300 focus:ring-2 focus:ring-cyan-500/50"
+                              placeholder="Full Name"
+                            />
+                            <AnimatePresence>
+                              {formData.name.length > 2 && (
+                                <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0 }} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                  <CheckCircle className="w-4 h-4 text-cyan-400" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                          <div className="relative">
+                            <input 
+                              type="tel" name="phone" required value={formData.phone} onChange={handleInputChange}
+                              className="w-full glass-input rounded-xl px-4 py-3.5 text-sm placeholder:text-slate-500 transition-all duration-300 focus:ring-2 focus:ring-cyan-500/50"
+                              placeholder="Phone Number"
+                            />
+                            <AnimatePresence>
+                              {formData.phone.length > 6 && (
+                                <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0 }} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                  <CheckCircle className="w-4 h-4 text-cyan-400" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         </div>
 
-                        <textarea 
-                          name="description" rows={3} required value={formData.description} onChange={handleInputChange}
-                          className="w-full glass-input rounded-xl px-4 py-3.5 text-sm placeholder:text-slate-500 resize-none"
-                          placeholder="Describe the issue (e.g., Pothole on Brickell Ave)..."
-                        ></textarea>
+                        <div className="relative">
+                          <input 
+                            type="email" name="email" required value={formData.email} onChange={handleInputChange}
+                            className="w-full glass-input rounded-xl px-4 py-3.5 text-sm placeholder:text-slate-500 transition-all duration-300 focus:ring-2 focus:ring-cyan-500/50"
+                            placeholder="Email Address"
+                          />
+                          <AnimatePresence>
+                            {formData.email.includes('@') && (
+                              <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0 }} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <CheckCircle className="w-4 h-4 text-cyan-400" />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        <div className="relative">
+                          <textarea 
+                            name="description" rows={3} required value={formData.description} onChange={handleInputChange}
+                            className="w-full glass-input rounded-xl px-4 py-3.5 text-sm placeholder:text-slate-500 resize-none transition-all duration-300 focus:ring-2 focus:ring-cyan-500/50"
+                            placeholder="Describe the issue (e.g., Pothole on Brickell Ave)..."
+                          ></textarea>
+                          <AnimatePresence>
+                            {formData.description.length > 10 && (
+                              <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0 }} className="absolute right-4 top-4 pointer-events-none">
+                                <CheckCircle className="w-4 h-4 text-cyan-400" />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        <div className="relative">
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleFileChange}
+                            className="w-full glass-input rounded-xl px-4 py-3 text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20 transition-all duration-300 cursor-pointer"
+                          />
+                          <AnimatePresence>
+                            {file && (
+                              <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0 }} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <CheckCircle className="w-4 h-4 text-cyan-400" />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       </div>
 
                       <motion.button 
@@ -368,7 +466,7 @@ export default function App() {
                         type="submit" 
                         className="w-full bg-cyan-400 text-[#0A0A0C] font-bold py-4 px-4 rounded-xl transition-all flex items-center justify-center gap-2 mt-4"
                       >
-                        <span>Dispatch Professional</span>
+                        <span>Get Your Free Quote</span>
                         <ArrowRight className="w-5 h-5" />
                       </motion.button>
                     </motion.form>
@@ -381,6 +479,44 @@ export default function App() {
         </motion.section>
       </div>
 
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-24 relative z-20 bg-[#0A0A0C]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-cyan-400 font-medium tracking-widest uppercase text-xs mb-3 justify-center flex items-center gap-2">
+              <div className="w-8 h-px bg-cyan-400"></div> 3-Step Process <div className="w-8 h-px bg-cyan-400"></div>
+            </h2>
+            <h3 className="text-4xl sm:text-5xl font-display font-bold text-white">How It Works</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+            {/* Connecting line for desktop */}
+            <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
+            
+            {[
+              { icon: <FileText className="w-8 h-8 text-cyan-400" />, title: "1. Fill Out a Quick Form", desc: "Describe the service you need and the specifics of the job." },
+              { icon: <UserCheck className="w-8 h-8 text-cyan-400" />, title: "2. Get Matched with a Pro", desc: "You're connected with a licensed, insured, and vetted professional in your area." },
+              { icon: <DollarSign className="w-8 h-8 text-cyan-400" />, title: "3. Receive a Free Quote", desc: "The pro provides a free quote — no pressure, no obligation." }
+            ].map((step, idx) => (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.2, ...SPRINGS.fluid }}
+                className="relative z-10 flex flex-col items-center text-center"
+              >
+                <div className="w-24 h-24 rounded-full bg-[#121216] border border-white/10 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(0,229,255,0.1)]">
+                  {step.icon}
+                </div>
+                <h4 className="text-xl font-display font-bold text-white mb-3">{step.title}</h4>
+                <p className="text-slate-400 text-sm leading-relaxed max-w-xs">{step.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Services Grid (Scroll Animations) */}
       <section id="services" className="py-24 relative z-20 border-t border-white/5 bg-[#0A0A0C] shadow-[0_-20px_50px_rgba(0,0,0,0.8)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -392,9 +528,9 @@ export default function App() {
             className="mb-16"
           >
             <h2 className="text-cyan-400 font-medium tracking-widest uppercase text-xs mb-3 flex items-center gap-2">
-              <div className="w-8 h-px bg-cyan-400"></div> Infrastructure Capabilities
+              <div className="w-8 h-px bg-cyan-400"></div> What We Cover
             </h2>
-            <h3 className="text-4xl sm:text-5xl font-display font-bold text-white">Comprehensive Coverage.</h3>
+            <h3 className="text-4xl sm:text-5xl font-display font-bold text-white">Services</h3>
           </motion.div>
 
           <motion.div 
@@ -434,6 +570,23 @@ export default function App() {
         </div>
       </section>
 
+      {/* Final CTA Section */}
+      <section className="py-24 relative z-20 border-t border-white/5 bg-gradient-to-b from-[#0A0A0C] to-[#050508]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl sm:text-5xl font-display font-bold text-white mb-6">Ready to get your repair sorted?</h2>
+          <p className="text-xl text-slate-400 mb-10">Tell us what's broken and a trusted Miami pro will get back to you.</p>
+          <motion.a 
+            whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(0,229,255,0.4)" }}
+            whileTap={{ scale: 0.95 }}
+            href="#quote" 
+            className="inline-flex items-center gap-2 bg-cyan-400 text-[#0A0A0C] px-8 py-4 rounded-full font-bold text-lg transition-all"
+          >
+            Get Your Free Quote
+            <ArrowRight className="w-5 h-5" />
+          </motion.a>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-white/10 bg-[#0A0A0C] py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
@@ -442,7 +595,7 @@ export default function App() {
             <span className="font-display font-bold text-lg tracking-tight text-white">FixIt<span className="text-cyan-400">Miami</span></span>
           </div>
           <p className="text-slate-500 text-sm">
-            © {new Date().getFullYear()} FixIt Miami. Civic Infrastructure Protocol.
+            © {new Date().getFullYear()} FixIt Miami. All pros are vetted, licensed, and insured.
           </p>
         </div>
       </footer>
