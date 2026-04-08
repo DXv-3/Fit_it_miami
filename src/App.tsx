@@ -6,6 +6,8 @@ import {
   FileText, UserCheck, DollarSign
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from './firebase';
 import CommandPalette, { Command } from './components/CommandPalette';
 import DiffModal from './components/DiffModal';
 
@@ -62,9 +64,12 @@ export default function App() {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [verificationStep, setVerificationStep] = useState<'form' | 'otp' | 'success'>('form');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [formData, setFormData] = useState({
-    service: '', name: '', phone: '', email: '', description: ''
+    service: '', name: '', phone: '', email: '', zip: '', description: ''
   });
   const [file, setFile] = useState<File | null>(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -153,22 +158,97 @@ export default function App() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCooldown > 0 && verificationStep === 'otp') {
+      timer = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown, verificationStep]);
+
+  const handleInitialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate network request
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSubmitted(true);
+    try {
+      const response = await fetch('/api/verify/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: formData.phone })
+      });
       
-      // Increased timeout to 10 seconds so the user can read the success message
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send verification code');
+      }
+
+      setIsSubmitting(false);
+      setVerificationStep('otp');
+      setResendCooldown(30);
+      toast.success('Verification code sent!');
+    } catch (error) {
+      setIsSubmitting(false);
+      toast.error(error instanceof Error ? error.message : 'An error occurred');
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setOtpError('');
+    
+    try {
+      const response = await fetch('/api/verify/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          phone: formData.phone, 
+          code: otpCode,
+          leadData: {
+            name: formData.name,
+            phone: formData.phone,
+            email: formData.email,
+            zip: formData.zip,
+            service: formData.service,
+            issue: formData.description,
+            submitted_at: new Date().toISOString()
+          }
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setIsSubmitting(false);
+        setOtpError(data.error || "That code isn't right. Please try again.");
+        return;
+      }
+
+      // Save lead to Firestore
+      await addDoc(collection(db, 'leads'), {
+        service: formData.service,
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        zip: formData.zip,
+        description: formData.description,
+        createdAt: serverTimestamp()
+      });
+
+      setIsSubmitting(false);
+      setVerificationStep('success');
+      
       setTimeout(() => {
-        setIsSubmitted(false);
-        setFormData({ service: '', name: '', phone: '', email: '', description: '' });
+        setVerificationStep('form');
+        setFormData({ service: '', name: '', phone: '', email: '', zip: '', description: '' });
         setFile(null);
+        setOtpCode('');
       }, 10000);
-    }, 2000);
+    } catch (error) {
+      setIsSubmitting(false);
+      setOtpError('Failed to verify code or save lead. Please try again.');
+    }
   };
 
   const services = [
@@ -323,10 +403,14 @@ export default function App() {
                       className="text-center py-16 flex flex-col items-center justify-center"
                     >
                       <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mb-6" />
-                      <h3 className="text-2xl font-display font-medium text-white">Dispatching Request...</h3>
-                      <p className="text-slate-400 mt-2">Connecting with available pros in your area.</p>
+                      <h3 className="text-2xl font-display font-medium text-white">
+                        {verificationStep === 'form' ? 'Sending Verification Code...' : 'Verifying Code...'}
+                      </h3>
+                      <p className="text-slate-400 mt-2">
+                        {verificationStep === 'form' ? 'Connecting securely.' : 'Confirming your identity.'}
+                      </p>
                     </motion.div>
-                  ) : isSubmitted ? (
+                  ) : verificationStep === 'success' ? (
                     <motion.div 
                       key="success"
                       initial={{ opacity: 0, scale: 0.95 }}
@@ -343,9 +427,80 @@ export default function App() {
                       >
                         <CheckCircle className="w-10 h-10 text-cyan-400" />
                       </motion.div>
-                      <h3 className="text-3xl font-display font-bold text-white mb-3">Request Secured</h3>
-                      <p className="text-slate-400">A vetted Miami pro is reviewing your issue and will contact you shortly.</p>
+                      <h3 className="text-3xl font-display font-bold text-white mb-3">Confirmed!</h3>
+                      <p className="text-slate-400">Your request is on its way. A vetted Miami pro will contact you shortly.</p>
                     </motion.div>
+                  ) : verificationStep === 'otp' ? (
+                    <motion.form 
+                      key="otp"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                      onSubmit={handleOtpSubmit} 
+                      className="space-y-5"
+                    >
+                      <div>
+                        <h2 className="text-2xl font-display font-bold text-white mb-1">Verify Your Number</h2>
+                        <p className="text-slate-400 text-sm mb-6">
+                          Great! We've sent a 4-digit confirmation code to <span className="text-cyan-400 font-medium">{formData.phone}</span>. Please enter it below to connect with a pro.
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            maxLength={4}
+                            required 
+                            value={otpCode} 
+                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                            className={`w-full glass-input rounded-xl px-4 py-4 text-center text-2xl tracking-[0.5em] font-mono placeholder:text-slate-600 transition-all duration-300 focus:ring-2 ${otpError ? 'border-red-500/50 focus:ring-red-500/50' : 'focus:ring-cyan-500/50'}`}
+                            placeholder="••••"
+                          />
+                          {otpError && <p className="text-red-400 text-sm mt-2 text-center">{otpError}</p>}
+                        </div>
+                      </div>
+
+                      <motion.button 
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        type="submit" 
+                        className="relative w-full group rounded-xl p-[2px] overflow-hidden mt-4 shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:shadow-[0_0_40px_rgba(0,229,255,0.6)] transition-all duration-500"
+                      >
+                        <div className="absolute inset-[-500%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#00E5FF_0%,#FF00E5_50%,#00E5FF_100%)] opacity-80 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        <div className="relative w-full bg-[#0A0A0C] group-hover:bg-[#121216] text-white font-bold py-4 px-4 rounded-[10px] transition-all duration-500 flex items-center justify-center gap-2 backdrop-blur-xl">
+                          <span className="group-hover:text-cyan-300 transition-colors">Confirm & Submit Request</span>
+                          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </motion.button>
+
+                      <div className="text-center mt-6">
+                        {resendCooldown > 0 ? (
+                          <p className="text-slate-500 text-sm">You can request a new code in {resendCooldown}s</p>
+                        ) : (
+                          <button 
+                            type="button" 
+                            onClick={async () => {
+                              setResendCooldown(30);
+                              try {
+                                await fetch('/api/verify/send', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ phone: formData.phone })
+                                });
+                                toast.success('New code sent!');
+                              } catch (error) {
+                                toast.error('Failed to resend code');
+                              }
+                            }}
+                            className="text-cyan-400 text-sm hover:underline"
+                          >
+                            Didn't receive a code? Resend
+                          </button>
+                        )}
+                      </div>
+                    </motion.form>
                   ) : (
                     <motion.form 
                       key="form"
@@ -353,7 +508,7 @@ export default function App() {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.4, ease: "easeInOut" }}
-                      onSubmit={handleSubmit} 
+                      onSubmit={handleInitialSubmit} 
                       className="space-y-5"
                     >
                       <div>
@@ -413,19 +568,36 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="relative">
-                          <input 
-                            type="email" name="email" required value={formData.email} onChange={handleInputChange}
-                            className="w-full glass-input rounded-xl px-4 py-3.5 text-sm placeholder:text-slate-500 transition-all duration-300 focus:ring-2 focus:ring-cyan-500/50"
-                            placeholder="Email Address"
-                          />
-                          <AnimatePresence>
-                            {formData.email.includes('@') && (
-                              <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0 }} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <CheckCircle className="w-4 h-4 text-cyan-400" />
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="relative">
+                            <input 
+                              type="email" name="email" required value={formData.email} onChange={handleInputChange}
+                              className="w-full glass-input rounded-xl px-4 py-3.5 text-sm placeholder:text-slate-500 transition-all duration-300 focus:ring-2 focus:ring-cyan-500/50"
+                              placeholder="Email Address"
+                            />
+                            <AnimatePresence>
+                              {formData.email.includes('@') && (
+                                <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0 }} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                  <CheckCircle className="w-4 h-4 text-cyan-400" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                          
+                          <div className="relative">
+                            <input 
+                              type="text" name="zip" required value={formData.zip} onChange={handleInputChange} maxLength={5}
+                              className="w-full glass-input rounded-xl px-4 py-3.5 text-sm placeholder:text-slate-500 transition-all duration-300 focus:ring-2 focus:ring-cyan-500/50"
+                              placeholder="ZIP Code"
+                            />
+                            <AnimatePresence>
+                              {formData.zip.length === 5 && (
+                                <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0 }} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                  <CheckCircle className="w-4 h-4 text-cyan-400" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         </div>
 
                         <div className="relative">
@@ -461,13 +633,16 @@ export default function App() {
                       </div>
 
                       <motion.button 
-                        whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(0,229,255,0.4)" }}
+                        whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         type="submit" 
-                        className="w-full bg-cyan-400 text-[#0A0A0C] font-bold py-4 px-4 rounded-xl transition-all flex items-center justify-center gap-2 mt-4"
+                        className="relative w-full group rounded-xl p-[2px] overflow-hidden mt-4 shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:shadow-[0_0_40px_rgba(0,229,255,0.6)] transition-all duration-500"
                       >
-                        <span>Get Your Free Quote</span>
-                        <ArrowRight className="w-5 h-5" />
+                        <div className="absolute inset-[-500%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#00E5FF_0%,#FF00E5_50%,#00E5FF_100%)] opacity-80 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        <div className="relative w-full bg-[#0A0A0C] group-hover:bg-[#121216] text-white font-bold py-4 px-4 rounded-[10px] transition-all duration-500 flex items-center justify-center gap-2 backdrop-blur-xl">
+                          <span className="group-hover:text-cyan-300 transition-colors">Verify My Number & Get Quote</span>
+                          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </div>
                       </motion.button>
                     </motion.form>
                   )}
@@ -576,13 +751,16 @@ export default function App() {
           <h2 className="text-4xl sm:text-5xl font-display font-bold text-white mb-6">Ready to get your repair sorted?</h2>
           <p className="text-xl text-slate-400 mb-10">Tell us what's broken and a trusted Miami pro will get back to you.</p>
           <motion.a 
-            whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(0,229,255,0.4)" }}
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             href="#quote" 
-            className="inline-flex items-center gap-2 bg-cyan-400 text-[#0A0A0C] px-8 py-4 rounded-full font-bold text-lg transition-all"
+            className="relative inline-flex group rounded-full p-[2px] overflow-hidden shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:shadow-[0_0_40px_rgba(0,229,255,0.6)] transition-all duration-500"
           >
-            Get Your Free Quote
-            <ArrowRight className="w-5 h-5" />
+            <div className="absolute inset-[-500%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#00E5FF_0%,#FF00E5_50%,#00E5FF_100%)] opacity-80 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative bg-[#0A0A0C] group-hover:bg-[#121216] text-white px-8 py-4 rounded-full font-bold text-lg transition-all duration-500 flex items-center gap-2 backdrop-blur-xl">
+              <span className="group-hover:text-cyan-300 transition-colors">Get Your Free Quote</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </div>
           </motion.a>
         </div>
       </section>
