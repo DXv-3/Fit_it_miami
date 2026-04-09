@@ -27,7 +27,7 @@
     "sonner": "^2.0.7",
     "styled-components": "^6.3.12",
     "twilio": "^5.13.1",
-    "vite": "^6.2.0"
+    "vite": "^6.4.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -38,6 +38,6 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.4.2"
   }
 }
